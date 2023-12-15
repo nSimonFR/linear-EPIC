@@ -1,4 +1,4 @@
-import { LinearClient } from '@linear/sdk';
+import { LINEAR_WEBHOOK_SIGNATURE_HEADER, LINEAR_WEBHOOK_TS_FIELD, LinearClient, LinearWebhooks } from '@linear/sdk';
 import { Router } from 'itty-router';
 import { z } from 'zod';
 
@@ -7,7 +7,6 @@ import { updateParentState } from "./update-epic";
 const router = Router();
 
 export interface Env {
-  LINEAR_KEY: string;
   LINEAR_CLIENT_ID: string;
   LINEAR_CLIENT_SECRET: string;
   LINEAR_REDIRECT_URI: string;
@@ -16,23 +15,52 @@ export interface Env {
 };
 
 const payloadValidator = z.object({
+  organizationId: z.string(),
   data: z.object({
     id: z.string()
   }),
 });
 
+const verifyLinearSignature = async (webhookSecret: string, request: Request, json: any) => {
+  const arrayBuffer = await request.arrayBuffer();
+  const requestBuffer = Buffer.from(arrayBuffer);
+
+  const webhook = new LinearWebhooks(webhookSecret);
+  return webhook.verify(
+    requestBuffer,
+    request.headers.get(LINEAR_WEBHOOK_SIGNATURE_HEADER)!,
+    json[LINEAR_WEBHOOK_TS_FIELD]
+  );
+};
+
 router.post('/webhook', async (request: Request, env: Env, ctx: ExecutionContext) => {
-  if (request.method === "POST") {
-    const json = await request.json();
-    const payload = await payloadValidator.parseAsync(json);
-    console.log(payload);
-
-    const linearClient = new LinearClient({
-      apiKey: env.LINEAR_KEY,
-    });
-
-    await updateParentState(linearClient)(payload.data.id, "EPIC");
+  if (request.method !== "POST") {
+    return new Response('Method not allowed', { status: 405 });
   };
+
+  const json = await request.clone().json();
+  if (!json) {
+    return new Response('Bad request', { status: 400 });
+  };
+
+  // const isLinear = await verifyLinearSignature(env.LINEAR_WEBHOOK_SECRET, request, json);
+  // if (!isLinear) {
+  //   return new Response('Unauthorized', { status: 401 });
+  // };
+
+  const payload = await payloadValidator.parseAsync(json);
+
+  const organizationId = payload.organizationId;
+  if (!organizationId) {
+    return new Response('Bad request', { status: 400 });
+  };
+
+  const accessToken = await env.sessions.get(organizationId);
+  if (!accessToken) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  await updateParentState(new LinearClient({ accessToken }))(payload.data.id, "EPIC");
 
   return new Response('Ok');
 });
