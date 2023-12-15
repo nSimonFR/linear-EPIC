@@ -6,11 +6,19 @@ const hasLabel = async (issue: Issue, labelToCheck: string) => {
   return labels.nodes.some((l) => l.name === labelToCheck);
 };
 
-export const updateParentState = (linearClient: LinearClient) => async (issueId: string, labelToCheck: string) => {
+export const updateParentState = (linearClient: LinearClient) => async (
+  issueId: string,
+  labelToCheck: string,
+  allowManualUpdates = false
+) => {
   let issue = await linearClient.issue(issueId);
 
   if (!issue.parent) {
     await linearClient.updateIssue(issueId, { estimate: 0 });
+
+    if (allowManualUpdates) {
+      return console.debug(`Stopping - Allowing manual updates.`);
+    }
   } else {
     issue = await issue.parent;
   }
