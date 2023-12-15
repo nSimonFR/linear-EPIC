@@ -2,3 +2,6 @@ name = "linear-epic"
 main = "./src/index.ts"
 compatibility_date = "2022-10-10"
 node_compat = true
+kv_namespaces = [
+  { binding = "sessions", id = "8a7e2f6e0d014c44aa20e782683b125a" }
+]
