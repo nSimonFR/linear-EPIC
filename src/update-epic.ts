@@ -14,17 +14,21 @@ export const updateParentState = (linearClient: LinearClient) => async (
   let issue = await linearClient.issue(issueId);
 
   if (!issue.parent) {
-    await linearClient.updateIssue(issueId, { estimate: 0 });
-
     if (allowManualUpdates) {
-      return console.debug(`Stopping - Allowing manual updates.`);
+      return console.debug(`Stopping - Allowing manual EPIC updates.`);
     }
+
+    if (!await hasLabel(issue, labelToCheck)) {
+      return console.debug(`Stopping - issue not a ${labelToCheck}.`);
+    }
+
+    await linearClient.updateIssue(issueId, { estimate: 0 });
   } else {
     issue = await issue.parent;
-  }
 
-  if (!hasLabel(issue, labelToCheck)) {
-    return console.debug(`Stopping - Issue not a ${labelToCheck}.`);
+    if (!await hasLabel(issue, labelToCheck)) {
+      return console.debug(`Stopping - parent not a ${labelToCheck}.`);
+    }
   }
 
   console.info(`Found ${labelToCheck}: ${issue.title}.`);
