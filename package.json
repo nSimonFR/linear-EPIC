@@ -1,16 +1,25 @@
 {
-	"name": "linear-epic",
-	"version": "0.0.1",
-	"private": true,
-	"scripts": {
-		"deploy": "wrangler deploy src/index.ts",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"test": "vitest run"
-	},
-	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20231016.0",
-		"typescript": "^5.0.4",
-		"wrangler": "^3.0.0"
-	}
+  "name": "linear-epic",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "deploy": "npx wrangler deploy --outdir out && npm run logs",
+    "dev": "wrangler dev",
+    "logs": "npx wrangler tail",
+    "start": "wrangler dev",
+    "secrets": "sh ./secrets.sh",
+    "test": "jest src"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231016.0",
+    "@types/jest": "^29.5.11",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "@linear/sdk": "^12.0.0",
+    "zod": "^3.22.4"
+  }
 }
