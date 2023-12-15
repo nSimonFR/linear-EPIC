@@ -1,7 +1,10 @@
 import { LinearClient } from '@linear/sdk';
+import { Router } from 'itty-router';
 import { z } from 'zod';
 
 import { updateParentState } from "./update-epic";
+
+const router = Router();
 
 export interface Env {
   LINEAR_KEY: string;
@@ -13,20 +16,24 @@ const payloadValidator = z.object({
   }),
 });
 
+router.post('/webhook', async (request: Request, env: Env, ctx: ExecutionContext) => {
+  if (request.method === "POST") {
+    const json = await request.json();
+    const payload = await payloadValidator.parseAsync(json);
+    console.log(payload);
+
+    const linearClient = new LinearClient({
+      apiKey: env.LINEAR_KEY,
+    });
+
+    await updateParentState(linearClient)(payload.data.id, "EPIC");
+  };
+
+  return new Response('Ok');
+});
+
+router.all('*', () => new Response('404, not found!', { status: 404 }));
+
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    if (request.method === "POST") {
-      const json = await request.json();
-      const payload = await payloadValidator.parseAsync(json);
-      console.log(payload);
-
-      const linearClient = new LinearClient({
-        apiKey: env.LINEAR_KEY,
-      });
-
-      await updateParentState(linearClient)(payload.data.id, "EPIC");
-    }
-
-    return new Response('Ok');
-  },
+  fetch: router.handle,
 };
