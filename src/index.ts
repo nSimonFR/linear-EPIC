@@ -8,7 +8,9 @@ export interface Env {
 }
 
 const payloadValidator = z.object({
-  id: z.string()
+  data: z.object({
+    id: z.string()
+  }),
 });
 
 export default {
@@ -22,7 +24,7 @@ export default {
         apiKey: env.LINEAR_KEY,
       });
 
-      await updateParentState(linearClient)(payload.id, "EPIC");
+      await updateParentState(linearClient)(payload.data.id, "EPIC");
     }
 
     return new Response('Ok');
