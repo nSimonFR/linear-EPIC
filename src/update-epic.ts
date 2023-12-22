@@ -1,5 +1,6 @@
 import { Issue, LinearClient } from "@linear/sdk";
 import findState from "./find-state";
+import { myIssue, myIssueQuery } from "./query";
 
 const hasLabel = async (issue: Issue, labelToCheck: string) => {
   const labels = await issue.labels(); // TODO
@@ -11,7 +12,7 @@ export const updateParentState = (linearClient: LinearClient) => async (
   labelToCheck: string,
   allowManualUpdates = false
 ) => {
-  let issue = await linearClient.issue(issueId);
+  let issue = await linearClient.issue(issueId); // TODO Remove
 
   if (!issue.parent) {
     if (allowManualUpdates) {
@@ -33,25 +34,26 @@ export const updateParentState = (linearClient: LinearClient) => async (
     }
   }
 
-  console.info(`Found ${labelToCheck}: ${issue.title}.`);
+  console.info(`Found ${labelToCheck}: "${issue.title}".`);
+  const result = await linearClient.client.rawRequest(myIssueQuery, { issueId });
+  const myIssue = (result.data as { issue: myIssue }).issue;
 
-  const parentTeam = await issue.team;
+  const parentTeam = myIssue.team;
   const statesResult = await linearClient.workflowStates({
     filter: { team: { id: { eq: parentTeam!.id } } },
   });
   const states = statesResult.nodes;
 
-  const childrens = await issue.children();
-  const state = await findState(issue, childrens.nodes, states);
+  const childrens = myIssue.children;
+  const state = findState(myIssue, childrens.nodes, states);
   if (!state) {
     return console.log(`[State] Stopping - No state.`);
   }
 
-  const parentState = await issue.state;
-  if (state.id === parentState!.id) {
+  if (state.id === myIssue.state!.id) {
     return console.log(`No need to update - matching state ${state.name}.`);
   }
   console.info(`Updating ${labelToCheck} to state: ${state.name}.`);
 
-  await linearClient.updateIssue(issue.id, { stateId: state.id });
+  await linearClient.updateIssue(myIssue.id, { stateId: state.id });
 };

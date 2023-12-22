@@ -1,12 +1,14 @@
 import { describe, expect, test } from "@jest/globals";
 
-import { Issue, Team, WorkflowState } from "@linear/sdk";
+import { Team, WorkflowState } from "@linear/sdk";
 import findState from "./find-state";
+import { myIssue, myState, mySubIssue } from "./query";
 
-type mockState = Partial<WorkflowState>;
+type mockState = Partial<myState>;
 type mockIssue = { state: mockState };
 
-const team = Promise.resolve({} as Team);
+const team = { id: "id", name: "name" } as Team;
+const mockedIssue = { id: "id", name: "name", title: "title", labels: { nodes: [] }, children: { nodes: [] }, team };
 
 const STATES: { [key: string]: mockState } = {
   triage: { id: "triage", position: -10000, type: "triage", team },
@@ -21,14 +23,14 @@ const STATES: { [key: string]: mockState } = {
 
 const findStateTest = (issue: mockIssue, childrens: mockIssue[]) =>
   findState(
-    { ...issue, team, state: Promise.resolve(issue.state) } as Issue,
-    childrens.map(i => ({ ...i, team, state: Promise.resolve(i.state) })) as Issue[],
+    { ...mockedIssue, state: issue.state } as myIssue,
+    childrens.map(i => ({ ...mockedIssue, team, state: i.state })) as mySubIssue[],
     Object.values(STATES) as WorkflowState[]
   );
 
 describe("findStateTest", () => {
-  test("multiple started => lowest started", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("multiple started => lowest started", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.review,
       },
@@ -40,8 +42,8 @@ describe("findStateTest", () => {
     expect(state!.id).toBe(STATES.inprogress.id);
   });
 
-  test("started and unstarted => started", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("started and unstarted => started", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.unstarted,
       },
@@ -53,8 +55,8 @@ describe("findStateTest", () => {
     expect(state!.id).toBe(STATES.inprogress.id);
   });
 
-  test("unstarted and started and completed => started", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("unstarted and started and completed => started", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.unstarted,
       },
@@ -69,8 +71,8 @@ describe("findStateTest", () => {
     expect(state!.id).toBe(STATES.inprogress.id);
   });
 
-  test("completed and cancelled => completed", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("completed and cancelled => completed", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.completed,
       },
@@ -82,8 +84,8 @@ describe("findStateTest", () => {
     expect(state!.id).toBe(STATES.completed.id);
   });
 
-  test("triage and backlog => backlog", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("triage and backlog => backlog", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.triage,
       },
@@ -95,8 +97,8 @@ describe("findStateTest", () => {
     expect(state!.id).toBe(STATES.backlog.id);
   });
 
-  test("unstarted and backlog => unstarted", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("unstarted and backlog => unstarted", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.unstarted,
       },
@@ -108,8 +110,8 @@ describe("findStateTest", () => {
     expect(state!.id).toBe(STATES.unstarted.id);
   });
 
-  test("completed and review => review", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("completed and review => review", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.completed,
       },
@@ -124,8 +126,8 @@ describe("findStateTest", () => {
     expect(state!.id).toBe(STATES.review.id);
   });
 
-  test("backlog and started => started", async () => {
-    const state = await findStateTest({ state: STATES.backlog }, [
+  test("backlog and started => started", () => {
+    const state = findStateTest({ state: STATES.backlog }, [
       {
         state: STATES.unstarted,
       },

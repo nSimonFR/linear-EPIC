@@ -1,4 +1,5 @@
-import { Issue, WorkflowState } from "@linear/sdk";
+import { WorkflowState } from "@linear/sdk";
+import { myIssue, myState, mySubIssue } from "./query";
 
 const STATE_TYPES_ORDERED = [
   "started",
@@ -9,10 +10,10 @@ const STATE_TYPES_ORDERED = [
   "canceled",
 ];
 
-const findState = async (issue: Issue, childrens: Issue[], states: WorkflowState[]) => {
-  let state: WorkflowState | undefined = undefined;
+const findState = (issue: myIssue, childrens: mySubIssue[], states: WorkflowState[]) => {
+  let state: myState | undefined = undefined;
   for (const children of childrens) {
-    const childrenState = await children.state!;
+    const childrenState = children.state;
 
     // Initial iteration for setup
     if (!state) {
@@ -33,8 +34,8 @@ const findState = async (issue: Issue, childrens: Issue[], states: WorkflowState
 
   if (!state) return null;
 
-  const stateTeam = await state.team!;
-  const issueTeam = await issue.team!;
+  const stateTeam = state.team!;
+  const issueTeam = issue.team!;
   if (stateTeam.id === issueTeam.id) return state;
 
   const matchingState = states.find((s) => s.name === state!.name);
@@ -42,17 +43,17 @@ const findState = async (issue: Issue, childrens: Issue[], states: WorkflowState
 
   state = undefined;
 
-  const issueAndTeamsChildren = await Promise.all(childrens.map(async (issue) => {
-    const team = await issue.team!;
+  const issueAndTeamsChildren = childrens.map((issue) => {
+    const team = issue.team!;
     return { issue, team };
-  }));
+  });
 
   const childrensForTeamFiltered = issueAndTeamsChildren
     .filter(({ team }) => team.id === issueTeam.id)
     .map(({ issue }) => issue);
 
   for (const children of childrensForTeamFiltered) {
-    const childrenState = await children.state!;
+    const childrenState = children.state!;
 
     if (!state || childrenState.position < state.position) {
       state = childrenState;
