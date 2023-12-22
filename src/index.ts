@@ -60,7 +60,12 @@ router.post('/webhook', async (request: Request, env: Env, ctx: ExecutionContext
     return new Response('Unauthorized', { status: 401 });
   }
 
-  await updateParentState(new LinearClient({ accessToken }))(payload.data.id, "EPIC");
+  try {
+    await updateParentState(new LinearClient({ accessToken }))(payload.data.id, "EPIC");
+  } catch (err) {
+    const error = err as Error;
+    console.error(error.stack);
+  }
 
   return new Response('Ok');
 });
