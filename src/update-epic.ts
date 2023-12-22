@@ -22,7 +22,9 @@ export const updateParentState = (linearClient: LinearClient) => async (
       return console.debug(`Stopping - issue not a ${labelToCheck}.`);
     }
 
-    await linearClient.updateIssue(issueId, { estimate: 0 });
+    if (issue.estimate !== 0) {
+      await linearClient.updateIssue(issueId, { estimate: 0 });
+    }
   } else {
     issue = await issue.parent;
 
