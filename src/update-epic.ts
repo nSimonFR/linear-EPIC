@@ -36,7 +36,7 @@ export const updateParentState = (linearClient: LinearClient) => async (
   }
 
   console.info(`Found ${labelToCheck}: "${issue.title}".`);
-  const result = await linearClient.client.rawRequest(myIssueQuery, { issueId });
+  const result = await linearClient.client.rawRequest(myIssueQuery, { issueId: issue.id });
   const myIssue = (result.data as { issue: myIssue }).issue;
 
   const parentTeam = myIssue.team;
@@ -56,5 +56,5 @@ export const updateParentState = (linearClient: LinearClient) => async (
   }
   console.info(`Updating ${labelToCheck} to state: ${state.name}.`);
 
-  await linearClient.updateIssue(issueId, { stateId: state.id });
+  await linearClient.updateIssue(myIssue.id, { stateId: state.id });
 };
