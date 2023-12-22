@@ -3,40 +3,42 @@ import { Issue, IssueLabel, Team, WorkflowState } from "@linear/sdk";
 /* TODO: Generate query and types altogether */
 
 export const myIssueQuery = `query Issues($issueId: String!) {
-  id,
-  title,
-  team {
+  issue(id: $issueId) {
     id,
-    name
-  },
-  state {
-    id,
-    name,
-    position,
-    type,
+    title,
     team {
-      id
-    }
-  },
-  labels {
-    nodes {
-      name
-    }
-  },
-  children {
-    nodes {
       id,
+      name
+    },
+    state {
+      id,
+      name,
+      position,
+      type,
       team {
-        id,
+        id
+      }
+    },
+    labels {
+      nodes {
         name
-      },
-      state {
+      }
+    },
+    children {
+      nodes {
         id,
-        name,
-        position,
-        type,
         team {
-          id
+          id,
+          name
+        },
+        state {
+          id,
+          name,
+          position,
+          type,
+          team {
+            id
+          }
         }
       }
     }
