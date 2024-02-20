@@ -47,7 +47,9 @@ const findState = (
   const issueTeam = issue.team!;
   if (stateTeam.id === issueTeam.id) return state;
 
-  const matchingState = states.find((s) => s.name === state!.name);
+  const matchingState = states.find(
+    (s) => s.name.toLowerCase() === state!.name.toLowerCase(),
+  );
   if (matchingState) return matchingState;
 
   const issueAndTeamsChildren = childrens.map((issue) => {
