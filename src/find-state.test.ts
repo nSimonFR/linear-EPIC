@@ -8,7 +8,14 @@ type mockState = Partial<myState>;
 type mockIssue = { state: mockState };
 
 const team = { id: "id", name: "name" } as Team;
-const mockedIssue = { id: "id", name: "name", title: "title", labels: { nodes: [] }, children: { nodes: [] }, team };
+const mockedIssue = {
+  id: "id",
+  name: "name",
+  title: "title",
+  labels: { nodes: [] },
+  children: { nodes: [] },
+  team,
+};
 
 const STATES: { [key: string]: mockState } = {
   triage: { id: "triage", position: -10000, type: "triage", team },
@@ -24,8 +31,12 @@ const STATES: { [key: string]: mockState } = {
 const findStateTest = (issue: mockIssue, childrens: mockIssue[]) =>
   findState(
     { ...mockedIssue, state: issue.state } as myIssue,
-    childrens.map(i => ({ ...mockedIssue, team, state: i.state })) as mySubIssue[],
-    Object.values(STATES) as WorkflowState[]
+    childrens.map((i) => ({
+      ...mockedIssue,
+      team,
+      state: i.state,
+    })) as mySubIssue[],
+    Object.values(STATES) as WorkflowState[],
   );
 
 describe("findStateTest", () => {
@@ -137,5 +148,48 @@ describe("findStateTest", () => {
     ]);
 
     expect(state!.id).toBe(STATES.inprogress.id);
+  });
+
+  test("issue #1", () => {
+    const state = findStateTest({ state: STATES.release }, [
+      {
+        state: STATES.completed,
+      },
+      {
+        state: STATES.completed,
+      },
+      {
+        state: STATES.release,
+      },
+      {
+        state: STATES.release,
+      },
+      {
+        state: STATES.release,
+      },
+      {
+        state: STATES.completed,
+      },
+      {
+        state: STATES.completed,
+      },
+      {
+        state: STATES.release,
+      },
+      {
+        state: STATES.cancelled,
+      },
+      {
+        state: STATES.completed,
+      },
+      {
+        state: STATES.review,
+      },
+      {
+        state: STATES.release,
+      },
+    ]);
+
+    expect(state!.id).toBe(STATES.review.id);
   });
 });
