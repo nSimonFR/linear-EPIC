@@ -10,7 +10,7 @@ const STATE_TYPES_ORDERED = [
   "canceled",
 ];
 
-const findState = (issue: myIssue, childrens: mySubIssue[], states: WorkflowState[]) => {
+const optimalStateForList = (childrens: mySubIssue[]) => {
   let state: myState | undefined = undefined;
   for (const children of childrens) {
     const childrenState = children.state;
@@ -31,6 +31,15 @@ const findState = (issue: myIssue, childrens: mySubIssue[], states: WorkflowStat
       state = childrenState;
     }
   }
+  return state;
+};
+
+const findState = (
+  issue: myIssue,
+  childrens: mySubIssue[],
+  states: WorkflowState[],
+) => {
+  const state: myState | undefined = optimalStateForList(childrens);
 
   if (!state) return null;
 
@@ -41,8 +50,6 @@ const findState = (issue: myIssue, childrens: mySubIssue[], states: WorkflowStat
   const matchingState = states.find((s) => s.name === state!.name);
   if (matchingState) return matchingState;
 
-  state = undefined;
-
   const issueAndTeamsChildren = childrens.map((issue) => {
     const team = issue.team!;
     return { issue, team };
@@ -52,15 +59,9 @@ const findState = (issue: myIssue, childrens: mySubIssue[], states: WorkflowStat
     .filter(({ team }) => team.id === issueTeam.id)
     .map(({ issue }) => issue);
 
-  for (const children of childrensForTeamFiltered) {
-    const childrenState = children.state!;
+  const fallbackState = optimalStateForList(childrensForTeamFiltered);
 
-    if (!state || childrenState.position < state.position) {
-      state = childrenState;
-    }
-  }
-
-  return state;
+  return fallbackState;
 };
 
 export default findState;
