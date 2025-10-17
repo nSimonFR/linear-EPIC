@@ -16,6 +16,7 @@ export interface Env {
   LINEAR_CLIENT_SECRET: string;
   LINEAR_REDIRECT_URI: string;
   LINEAR_WEBHOOK_SECRET: string;
+  LABEL_TO_CHECK: string;
   sessions: KVNamespace;
 }
 
@@ -74,7 +75,7 @@ router.post(
     try {
       await updateParentState(new LinearClient({ accessToken }))(
         payload.data.id,
-        "EPIC"
+        env.LABEL_TO_CHECK
       );
     } catch (err) {
       const error = err as Error;
