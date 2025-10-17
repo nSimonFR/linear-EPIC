@@ -75,7 +75,7 @@ router.post(
     try {
       await updateParentState(new LinearClient({ accessToken }))(
         payload.data.id,
-        env.LABEL_TO_CHECK
+        env.LABEL_TO_CHECK || "EPIC"
       );
     } catch (err) {
       const error = err as Error;
