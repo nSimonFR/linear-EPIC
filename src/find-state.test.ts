@@ -36,7 +36,7 @@ const findStateTest = (issue: mockIssue, childrens: mockIssue[]) =>
       team,
       state: i.state,
     })) as mySubIssue[],
-    Object.values(STATES) as WorkflowState[],
+    Object.values(STATES) as WorkflowState[]
   );
 
 describe("findStateTest", () => {

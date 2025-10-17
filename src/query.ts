@@ -46,38 +46,38 @@ export const myIssueQuery = `query Issues($issueId: String!) {
 }`;
 
 export type myState = {
-  id: WorkflowState["id"],
-  name: WorkflowState["name"],
-  position: WorkflowState["position"],
-  type: WorkflowState["type"],
+  id: WorkflowState["id"];
+  name: WorkflowState["name"];
+  position: WorkflowState["position"];
+  type: WorkflowState["type"];
   team: {
-    id: Team["id"]
-  }
-}
+    id: Team["id"];
+  };
+};
 
 export type mySubIssue = {
-  id: Issue["id"],
+  id: Issue["id"];
   team: {
-    id: Team["id"],
-    name: Team["name"]
-  },
-  state: myState
-}
+    id: Team["id"];
+    name: Team["name"];
+  };
+  state: myState;
+};
 
 export type myIssue = {
-  id: Issue["id"],
-  title: Issue["title"],
+  id: Issue["id"];
+  title: Issue["title"];
   team: {
-    id: Team["id"],
-    name: Team["name"],
-  },
-  state: myState,
+    id: Team["id"];
+    name: Team["name"];
+  };
+  state: myState;
   labels: {
     nodes: {
-      name: IssueLabel["name"]
-    }[]
-  },
+      name: IssueLabel["name"];
+    }[];
+  };
   children: {
-    nodes: mySubIssue[]
-  }
-}
+    nodes: mySubIssue[];
+  };
+};

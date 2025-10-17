@@ -37,7 +37,7 @@ const optimalStateForList = (childrens: mySubIssue[]) => {
 const findState = (
   issue: myIssue,
   childrens: mySubIssue[],
-  states: WorkflowState[],
+  states: WorkflowState[]
 ) => {
   const state: myState | undefined = optimalStateForList(childrens);
 
@@ -48,7 +48,7 @@ const findState = (
   if (stateTeam.id === issueTeam.id) return state;
 
   const matchingState = states.find(
-    (s) => s.name.toLowerCase() === state!.name.toLowerCase(),
+    (s) => s.name.toLowerCase() === state!.name.toLowerCase()
   );
   if (matchingState) return matchingState;
 
