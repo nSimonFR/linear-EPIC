@@ -67,13 +67,27 @@ router.post(
       return new Response("Bad request", { status: 400 });
     }
 
-    const accessToken = await env.sessions.get(organizationId);
-    if (!accessToken) {
+    const stored = await env.sessions.get(organizationId);
+    if (!stored) {
       return new Response("Unauthorized", { status: 401 });
     }
 
+    let session: StoredSession;
     try {
-      await updateParentState(new LinearClient({ accessToken }))(
+      session = JSON.parse(stored) as StoredSession;
+    } catch {
+      // Legacy: plain access token stored before refresh token support
+      session = { access_token: stored, refresh_token: "", expires_at: Infinity };
+    }
+
+    // Refresh if expired or expiring within 5 minutes
+    if (session.refresh_token && Date.now() >= session.expires_at - 5 * 60 * 1000) {
+      session = await refreshAccessToken(env, session);
+      await env.sessions.put(organizationId, JSON.stringify(session));
+    }
+
+    try {
+      await updateParentState(new LinearClient({ accessToken: session.access_token }))(
         payload.data.id,
         env.LABEL_TO_CHECK || "EPIC"
       );
@@ -104,6 +118,36 @@ router.get("/authorize", (request: Request, env: Env) => {
 
 type tokenResponse = {
   access_token: string;
+  refresh_token: string;
+  expires_in: number;
+};
+
+type StoredSession = {
+  access_token: string;
+  refresh_token: string;
+  expires_at: number; // unix timestamp ms
+};
+
+const refreshAccessToken = async (
+  env: Env,
+  session: StoredSession
+): Promise<StoredSession> => {
+  const response = await fetch("https://api.linear.app/oauth/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: session.refresh_token,
+      client_id: env.LINEAR_CLIENT_ID,
+      client_secret: env.LINEAR_CLIENT_SECRET,
+    }),
+  });
+  const json: tokenResponse = await response.json();
+  return {
+    access_token: json.access_token,
+    refresh_token: json.refresh_token,
+    expires_at: Date.now() + json.expires_in * 1000,
+  };
 };
 
 router.get("/redirect", async (request: Request, env: Env) => {
@@ -125,15 +169,77 @@ router.get("/redirect", async (request: Request, env: Env) => {
   });
   const json: tokenResponse = await response.json();
 
-  const accessToken = json.access_token;
-  const linearClient = new LinearClient({ accessToken });
+  const session: StoredSession = {
+    access_token: json.access_token,
+    refresh_token: json.refresh_token,
+    expires_at: Date.now() + json.expires_in * 1000,
+  };
+
+  const linearClient = new LinearClient({ accessToken: session.access_token });
   const organization = await linearClient.organization;
 
   console.log("New organization !", organization.id);
 
-  await env.sessions.put(organization.id, accessToken);
+  await env.sessions.put(organization.id, JSON.stringify(session));
 
   return new Response("Done !");
+});
+
+// One-time migration: exchange the stored long-lived token for a short-lived
+// access token + refresh token without requiring re-authorization.
+// Usage: GET /migrate?organizationId=<id>
+router.get("/migrate", async (request: Request, env: Env) => {
+  const { searchParams } = new URL(request.url);
+  const organizationId = searchParams.get("organizationId");
+  if (!organizationId) {
+    return new Response("Missing organizationId", { status: 400 });
+  }
+
+  const stored = await env.sessions.get(organizationId);
+  if (!stored) {
+    return new Response("No session found for this organization", { status: 404 });
+  }
+
+  let oldAccessToken: string;
+  try {
+    const existing = JSON.parse(stored) as StoredSession;
+    if (existing.refresh_token) {
+      return new Response("Session already has a refresh token — no migration needed", { status: 200 });
+    }
+    oldAccessToken = existing.access_token;
+  } catch {
+    oldAccessToken = stored;
+  }
+
+  const response = await fetch("https://api.linear.app/oauth/migrate_old_token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Bearer ${oldAccessToken}`,
+    },
+    body: new URLSearchParams({
+      client_id: env.LINEAR_CLIENT_ID,
+      client_secret: env.LINEAR_CLIENT_SECRET,
+    }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    console.error("Migration failed:", response.status, text);
+    return new Response(`Migration failed: ${response.status} ${text}`, { status: 502 });
+  }
+
+  const json: tokenResponse = await response.json();
+  const session: StoredSession = {
+    access_token: json.access_token,
+    refresh_token: json.refresh_token,
+    expires_at: Date.now() + json.expires_in * 1000,
+  };
+
+  await env.sessions.put(organizationId, JSON.stringify(session));
+
+  console.log("Migrated token for organization", organizationId);
+  return new Response("Migration successful");
 });
 
 router.all("*", () => new Response("404, not found!", { status: 404 }));
